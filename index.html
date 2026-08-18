@@ -106,15 +106,43 @@ function pos(){
  ${!ms.length?'<p class="muted">Tiada menu tersedia dalam kategori ini.</p>':''}</div>
  <div class="card"><h3>Current Order</h3>${state.cart.length?state.cart.map(i=>`<div class="cart-item"><div><b>${i.name}</b><br><span class="muted">${money(i.price)} × ${i.qty}</span></div><div><button onclick="changeQty('${i.id}',-1)">−</button><button onclick="changeQty('${i.id}',1)">+</button></div></div>`).join(''):'<p class="muted">Belum ada item.</p>'}
  <hr><div class="between"><span>Subtotal</span><b>${money(sub)}</b></div><div class="between"><span>Discount</span><span>${money(disc)}</span></div><div class="between"><span>Service</span><span>${money(service)}</span></div><div class="between"><span>Tax</span><span>${money(tax)}</span></div><div class="between" style="font-size:20px;margin-top:8px"><b>TOTAL</b><b>${money(total)}</b></div>
- <label>Payment</label><select id="payment">${[['CASH',state.data.settings.payCash],['CARD',state.data.settings.payCard],['QR',state.data.settings.payQR]].filter(x=>x[1]).map(x=>`<option>${x[0]}</option>`).join('')}</select>
+ <label>Payment</label>
+ <select id="payment" onchange="paymentChanged()">${[['CASH',state.data.settings.payCash],['CARD',state.data.settings.payCard],['QR',state.data.settings.payQR]].filter(x=>x[1]).map(x=>`<option value="${x[0]}">${x[0]}</option>`).join('')}</select>
+ <div id="cashBox" style="margin-top:10px">
+   <label for="cashReceived">Tunai Diterima (RM)</label>
+   <input id="cashReceived" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Contoh: 10.00" oninput="updateChange(${total})">
+   <div class="between" style="margin-top:8px;font-size:18px"><b>Baki / Change</b><b id="changeAmount">RM 0.00</b></div>
+ </div>
  <div class="row" style="margin-top:10px"><button class="primary" style="flex:1" onclick="completeOrder(${total})" ${state.cart.length?'':'disabled'}>Bayar & Cetak Receipt</button></div></div></div>`
 }
 function addCart(id){let m=state.data.menus.find(x=>x.id===id),i=state.cart.find(x=>x.id===id);i?i.qty++:state.cart.push({...m,qty:1});render()}
 function changeQty(id,n){let i=state.cart.find(x=>x.id===id);if(!i)return;i.qty+=n;if(i.qty<=0)state.cart=state.cart.filter(x=>x.id!==id);render()}
+function paymentChanged(){
+ const payment=document.getElementById('payment')?.value;
+ const box=document.getElementById('cashBox');
+ if(box) box.style.display=payment==='CASH'?'block':'none';
+}
+function updateChange(total){
+ const el=document.getElementById('cashReceived');
+ const changeEl=document.getElementById('changeAmount');
+ if(!el||!changeEl)return;
+ const received=parseFloat(el.value)||0;
+ const change=received-total;
+ changeEl.textContent=money(Math.max(0,change));
+}
 async function completeOrder(total){
- const payment=document.getElementById('payment').value;if(!payment)return;
+ const payment=document.getElementById('payment')?.value;if(!payment)return;
+ let cash_received=0, change=0;
+ if(payment==='CASH'){
+   cash_received=parseFloat(document.getElementById('cashReceived')?.value)||0;
+   if(cash_received<total){
+     alert('Tunai diterima tidak mencukupi. Jumlah perlu sekurang-kurangnya '+money(total)+'.');
+     return;
+   }
+   change=cash_received-total;
+ }
  const n=1000+state.data.orders.length+1;
- const o={order_id:crypto.randomUUID(),order_no:state.data.settings.orderPrefix+'-'+n,items:state.cart.map(x=>({menu_id:x.id,name:x.name,price:x.price,qty:x.qty})),subtotal:state.cart.reduce((s,x)=>s+x.price*x.qty,0),total,payment,status:'NEW',time:new Date().toLocaleString('ms-MY'),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+ const o={order_id:crypto.randomUUID(),order_no:state.data.settings.orderPrefix+'-'+n,items:state.cart.map(x=>({menu_id:x.id,name:x.name,price:x.price,qty:x.qty})),subtotal:state.cart.reduce((s,x)=>s+x.price*x.qty,0),total,payment,cash_received,change,status:'NEW',time:new Date().toLocaleString('ms-MY'),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
  state.data.orders.push(o);state.receipt=o;state.cart=[];audit('Create order','POS',o.order_no);await save();go('receipt')
 }
 
