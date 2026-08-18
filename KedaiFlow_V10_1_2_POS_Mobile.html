@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111827">
+<title>KedaiFlow V10.1 — Offline Single-User</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f3f4f6;color:#111827}
+header{height:58px;background:#111827;color:white;display:flex;align-items:center;justify-content:space-between;padding:0 18px;position:sticky;top:0;z-index:20}
+header b{font-size:20px}.badge{background:#374151;padding:5px 9px;border-radius:99px;font-size:12px}
+.layout{display:flex;min-height:calc(100vh - 58px)}nav{width:235px;background:white;border-right:1px solid #e5e7eb;padding:10px;flex-shrink:0}
+nav button{width:100%;border:0;background:transparent;text-align:left;padding:10px 12px;margin:2px 0;border-radius:8px;cursor:pointer;font-size:14px}
+nav button.active,nav button:hover{background:#eef2ff}
+main{width:100%;max-width:1450px;margin:auto;padding:18px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;box-shadow:0 1px 2px #00000008}
+h2{margin:0 0 15px}h3{margin:0 0 10px}.muted{font-size:13px;color:#6b7280}.stat{font-size:28px;font-weight:700}
+button{border:1px solid #d1d5db;background:#fff;border-radius:8px;padding:9px 12px;cursor:pointer}.primary{background:#111827;color:#fff;border-color:#111827}.danger{color:#991b1b}
+input,select{width:100%;padding:9px;border:1px solid #d1d5db;border-radius:8px;background:#fff}label{font-size:12px;color:#6b7280;display:block;margin:9px 0 4px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.between{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.table{width:100%;border-collapse:collapse}.table th,.table td{padding:9px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:14px}
+.menu{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}.menu button{text-align:left;min-height:92px}.price{font-weight:700;margin-top:8px}
+.cart-item{display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid #e5e7eb}
+.pill{display:inline-block;padding:4px 8px;border-radius:99px;background:#f3f4f6;font-size:12px}.new{background:#dbeafe}.prep{background:#fef3c7}.ready{background:#dcfce7}.done{background:#e5e7eb}
+.notice{padding:10px;border-radius:8px;background:#ecfdf5;color:#065f46;margin-bottom:12px}.warning{background:#fff7ed;color:#9a3412}
+.posgrid{display:grid;grid-template-columns:minmax(0,2fr) minmax(310px,1fr);gap:14px}.receipt{max-width:380px;margin:auto;background:white;border:1px dashed #9ca3af;padding:18px;font-family:monospace}
+.cat{display:flex;gap:6px;overflow:auto;margin-bottom:12px}.cat button.active{background:#111827;color:#fff}
+.small{font-size:12px}.right{text-align:right}.total-row{font-size:22px;margin-top:12px;padding-top:10px;border-top:2px solid #e5e7eb}
+@media(max-width:800px){
+  header{height:56px;padding:0 12px;position:sticky}
+  header b{font-size:18px}.badge{font-size:11px}
+  .layout{display:block;min-height:calc(100vh - 56px)}
+  nav{position:fixed;left:0;top:56px;bottom:0;width:0;overflow:hidden;padding:0;z-index:40;border-right:0;box-shadow:none;transition:width .18s ease}
+  nav.open{width:min(82vw,300px);padding:10px;box-shadow:4px 0 18px #0002} #navBackdrop{display:block;position:fixed;inset:56px 0 0 0;background:#0004;z-index:30}
+  nav button{font-size:14px;text-align:left;padding:12px;width:100%;margin:3px 0}
+  .nav-toggle{display:flex!important}
+  main{padding:12px;width:100%;max-width:none;overflow-x:hidden}
+  .posgrid{grid-template-columns:1fr;min-width:0}
+  .posgrid>.card{min-width:0}
+  .menu{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .menu button{min-width:0;padding:12px 10px}
+  .cat{padding-bottom:4px}
+  .cat button{white-space:nowrap}
+  .cart-item{gap:8px}
+  .cart-item>div:last-child{white-space:nowrap}
+  .card{padding:13px}
+  .between{align-items:flex-start}
+  .between h2{font-size:24px}
+  .table{display:block;overflow-x:auto;white-space:nowrap}
+}
+@media(min-width:801px){.nav-toggle{display:none!important}}
+</style>
+
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+</head>
+<body>
+<header><button class="nav-toggle" aria-label="Buka menu" onclick="toggleNav()" style="display:none;border:0;background:#374151;color:white;font-size:20px;padding:6px 10px;border-radius:8px">☰</button><b>KedaiFlow</b><span class="badge">V10.1 • Offline Single-User</span></header>
+<div class="layout"><nav id="nav"></nav><div id="navBackdrop" onclick="closeNav()"></div><main id="app">Memuatkan…</main></div>
+<script>
+const DB='KedaiFlow_V10_1_FULL', STORE='app';
+let idb, state={page:'dashboard',category:'Semua',cart:[],receipt:null,data:null};
+
+const seed=()=>({
+ business:{name:'Sambalado Foodcourt',phone:'03-12345678',address:'AEON BIG',logo:'',active:true},
+ outlet:{id:'OUTLET-01',name:'Sambalado Foodcourt',phone:'03-12345678',address:'AEON BIG',active:true},
+ categories:['Semua','Ayam Penyet','Western','Minuman','Sampingan'],
+ menus:[
+  {id:'m1',category:'Ayam Penyet',name:'Ayam Penyet',price:12,available:true},
+  {id:'m2',category:'Ayam Penyet',name:'Nasi Ayam',price:10,available:true},
+  {id:'m3',category:'Western',name:'Chicken Chop',price:15,available:true},
+  {id:'m4',category:'Western',name:'Fish & Chips',price:14,available:true},
+  {id:'m5',category:'Minuman',name:'Teh O',price:3,available:true},
+  {id:'m6',category:'Minuman',name:'Sirap Bandung',price:4,available:true},
+  {id:'m7',category:'Sampingan',name:'Sup Cendawan',price:7,available:true}
+ ],
+ staff:[{id:'u1',name:'Owner',role:'Owner',active:true}],
+ orders:[],
+ settings:{service:0,tax:0,discount:0,payCash:true,payCard:false,payQR:false,orderPrefix:'KF'},
+ receipt:{header:'SAMBALADO FOODCOURT',footer:'Terima kasih. Sila datang lagi.'},
+ audit:[],
+ meta:{version:'V10.1',mode:'offline-single-user',lastBackup:null}
+});
+
+function openDB(){return new Promise((res,rej)=>{let r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{let d=r.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE)};r.onsuccess=()=>{idb=r.result;res()};r.onerror=()=>rej(r.error)})}
+function load(){return new Promise((res,rej)=>{let r=idb.transaction(STORE,'readonly').objectStore(STORE).get('data');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+function save(){return new Promise((res,rej)=>{let t=idb.transaction(STORE,'readwrite');t.objectStore(STORE).put(state.data,'data');t.oncomplete=res;t.onerror=()=>rej(t.error)})}
+function money(n){return 'RM '+Number(n).toFixed(2)}
+function audit(action,module,obj=''){state.data.audit.unshift({id:crypto.randomUUID(),user:'Owner',time:new Date().toLocaleString('ms-MY'),action,module,obj});save()}
+function go(p){state.page=p;render();closeNav()}
+function toggleNav(){document.getElementById('nav').classList.toggle('open')}
+function closeNav(){document.getElementById('nav').classList.remove('open')}
+function nav(){const items=[
+ ['dashboard','📊 Dashboard'],['pos','🛒 POS Cashier'],['orders','📋 Orders'],['kitchen','🍳 Kitchen'],
+ ['menu','🍽️ Menu'],['categories','🗂️ Categories'],['staff','👥 Staff & Role'],['reports','📈 Reports'],
+ ['receipt','🧾 Receipt'],['settings','⚙️ Settings'],['backup','💾 Backup'],['audit','📝 Audit Log']
+];document.getElementById('nav').innerHTML=items.map(x=>`<button class="${state.page===x[0]?'active':''}" onclick="go('${x[0]}')">${x[1]}</button>`).join('')}
+function render(){nav();({dashboard,pos,orders,kitchen,menu,categories,staff,reports,receipt,settings,backup,audit:auditPage}[state.page])()}
+
+function dashboard(){
+ const today=new Date().toLocaleDateString('ms-MY');
+ const os=state.data.orders.filter(o=>new Date(o.created_at).toLocaleDateString('ms-MY')===today);
+ const sales=os.reduce((s,o)=>s+o.total,0),cash=os.filter(o=>o.payment==='CASH').reduce((s,o)=>s+o.total,0);
+ const qr=os.filter(o=>o.payment==='QR').reduce((s,o)=>s+o.total,0),card=os.filter(o=>o.payment==='CARD').reduce((s,o)=>s+o.total,0);
+ document.getElementById('app').innerHTML=`<div class="between"><div><h2>${state.data.business.name}</h2><div class="muted">Owner Dashboard • Offline</div></div><span class="pill">● LOCAL DATABASE</span></div>
+ <div class="notice">✓ Internet tidak diperlukan untuk operasi harian. Semua data disimpan pada peranti ini.</div>
+ <div class="grid"><div class="card"><div class="muted">Jualan Hari Ini</div><div class="stat">${money(sales)}</div></div>
+ <div class="card"><div class="muted">Orders Hari Ini</div><div class="stat">${os.length}</div></div>
+ <div class="card"><div class="muted">Cash</div><div class="stat">${money(cash)}</div></div>
+ <div class="card"><div class="muted">QR / Card</div><div class="stat">${money(qr+card)}</div></div></div>
+ <div class="grid" style="margin-top:14px"><div class="card"><h3>Order Status</h3>${['NEW','PREPARING','READY','COMPLETED'].map(s=>`<div class="between"><span>${s}</span><b>${state.data.orders.filter(o=>o.status===s).length}</b></div>`).join('')}</div>
+ <div class="card"><h3>Menu</h3><div class="between"><span>Active</span><b>${state.data.menus.filter(m=>m.available).length}</b></div><div class="between"><span>Sold Out</span><b>${state.data.menus.filter(m=>!m.available).length}</b></div></div>
+ <div class="card"><h3>Quick Actions</h3><div class="row"><button class="primary" onclick="go('pos')">New Order</button><button onclick="go('kitchen')">Kitchen</button><button onclick="go('reports')">Reports</button></div></div></div>
+ <div class="card" style="margin-top:14px"><h3>Order Terkini</h3>${orderTable(state.data.orders.slice().reverse().slice(0,8))}</div>`
+}
+function orderTable(os){if(!os.length)return '<div class="muted">Belum ada order.</div>';return `<table class="table"><tr><th>Order</th><th>Masa</th><th>Total</th><th>Payment</th><th>Status</th></tr>${os.map(o=>`<tr><td>#${o.order_no}</td><td>${o.time}</td><td>${money(o.total)}</td><td>${o.payment}</td><td><span class="pill ${o.status==='NEW'?'new':o.status==='PREPARING'?'prep':o.status==='READY'?'ready':'done'}">${o.status}</span></td></tr>`).join('')}</table>`}
+
+function pos(){
+ let cats=state.data.categories.filter(c=>c!=='Semua'),cat=state.category;
+ let ms=state.data.menus.filter(m=>m.available&&(cat==='Semua'||m.category===cat));
+ let sub=state.cart.reduce((s,i)=>s+i.price*i.qty,0),disc=Math.min(sub,sub*state.data.settings.discount/100);
+ let taxable=sub-disc,service=taxable*state.data.settings.service/100,tax=taxable*state.data.settings.tax/100,total=taxable+service+tax;
+ document.getElementById('app').innerHTML=`<div class="between"><div><h2>POS Cashier</h2><div class="muted">${state.data.outlet.name}</div></div><button onclick="state.cart=[];render()">Kosongkan Cart</button></div>
+ <div class="posgrid"><div class="card"><div class="cat"><button class="${cat==='Semua'?'active':''}" onclick="state.category='Semua';render()">Semua</button>${cats.map(c=>`<button class="${cat===c?'active':''}" onclick="state.category='${c}';render()">${c}</button>`).join('')}</div>
+ <div class="menu">${ms.map(m=>`<button onclick="addCart('${m.id}')"><b>${m.name}</b><div class="small muted">${m.category}</div><div class="price">${money(m.price)}</div></button>`).join('')}</div>
+ ${!ms.length?'<p class="muted">Tiada menu tersedia dalam kategori ini.</p>':''}</div>
+ <div class="card"><h3>Current Order</h3>${state.cart.length?state.cart.map(i=>`<div class="cart-item"><div><b>${i.name}</b><br><span class="muted">${money(i.price)} × ${i.qty}</span></div><div><button onclick="changeQty('${i.id}',-1)">−</button><button onclick="changeQty('${i.id}',1)">+</button></div></div>`).join(''):'<p class="muted">Belum ada item.</p>'}
+ <hr><div class="between"><span>Subtotal</span><b>${money(sub)}</b></div><div class="between"><span>Discount</span><span>${money(disc)}</span></div><div class="between"><span>Service</span><span>${money(service)}</span></div><div class="between"><span>Tax</span><span>${money(tax)}</span></div><div class="between total-row"><b>TOTAL</b><b>${money(total)}</b></div>
+ <label for="payment">Payment</label><select id="payment" onchange="paymentChanged(${total})">${[['CASH',state.data.settings.payCash],['CARD',state.data.settings.payCard],['QR',state.data.settings.payQR]].filter(x=>x[1]).map(x=>`<option>${x[0]}</option>`).join('')}</select>
+ <div id="cashBox">${cashPaymentBox(total)}</div>
+ <div class="row" style="margin-top:10px"><button id="payBtn" class="primary" style="flex:1" onclick="completeOrder(${total})" ${state.cart.length?'':'disabled'}>Bayar & Cetak Receipt</button></div></div></div>`
+}
+function cashPaymentBox(total){
+ return `<label for="cashReceived">Tunai Diterima</label><input id="cashReceived" type="number" inputmode="decimal" min="0" step="0.01" placeholder="${Number(total).toFixed(2)}" oninput="updateChange(${total})"><div id="changeBox" class="notice" style="margin-top:10px;padding:10px">Baki: <b>RM 0.00</b></div>`;
+}
+function paymentChanged(total){
+ const p=document.getElementById('payment').value;
+ const box=document.getElementById('cashBox');
+ if(p==='CASH') box.innerHTML=cashPaymentBox(total); else box.innerHTML='<div class="notice" style="margin-top:10px;padding:10px">Pembayaran '+p+' dipilih.</div>';
+}
+function updateChange(total){
+ const input=document.getElementById('cashReceived'), btn=document.getElementById('payBtn'), box=document.getElementById('changeBox');
+ if(!input||!btn)return;
+ const received=Number(input.value||0), change=received-total;
+ if(change>=0){
+   box.innerHTML='Baki: <b>'+money(change)+'</b>';
+   box.style.borderColor='#86efac'; box.style.background='#ecfdf5';
+   btn.disabled=!state.cart.length;
+ }else{
+   box.innerHTML='Tunai tidak mencukupi. Kurang: <b>'+money(Math.abs(change))+'</b>';
+   box.style.borderColor='#fecaca'; box.style.background='#fef2f2';
+   btn.disabled=true;
+ }
+}
+function addCart(id){let m=state.data.menus.find(x=>x.id===id),i=state.cart.find(x=>x.id===id);i?i.qty++:state.cart.push({...m,qty:1});render()}
+function changeQty(id,n){let i=state.cart.find(x=>x.id===id);if(!i)return;i.qty+=n;if(i.qty<=0)state.cart=state.cart.filter(x=>x.id!==id);render()}
+async function completeOrder(total){
+ const payment=document.getElementById('payment').value;if(!payment||!state.cart.length)return;
+ let received=null,change=0;
+ if(payment==='CASH'){
+   received=Number(document.getElementById('cashReceived')?.value||0);
+   if(received<total){alert('Tunai diterima tidak mencukupi.');return}
+   change=received-total;
+ }
+ const n=1000+state.data.orders.length+1;
+ const o={order_id:crypto.randomUUID(),order_no:state.data.settings.orderPrefix+'-'+n,items:state.cart.map(x=>({menu_id:x.id,name:x.name,price:x.price,qty:x.qty})),subtotal:state.cart.reduce((s,x)=>s+x.price*x.qty,0),total,payment,cash_received:received,change,status:'NEW',time:new Date().toLocaleString('ms-MY'),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+ state.data.orders.push(o);state.receipt=o;state.cart=[];audit('Create order','POS',o.order_no);await save();go('receipt')
+}
+
+function orders(){document.getElementById('app').innerHTML=`<div class="between"><h2>Orders</h2><button class="primary" onclick="go('pos')">+ New Order</button></div><div class="card">${orderTable(state.data.orders.slice().reverse())}</div>`}
+
+function kitchen(){
+ const active=state.data.orders.filter(o=>o.status!=='COMPLETED').slice().reverse();
+ document.getElementById('app').innerHTML=`<div class="between"><div><h2>Kitchen</h2><div class="muted">${state.data.outlet.name}</div></div><button onclick="go('orders')">Order History</button></div>
+ <div class="grid">${active.length?active.map(o=>`<div class="card"><div class="between"><h3>#${o.order_no}</h3><span class="pill ${o.status==='NEW'?'new':o.status==='PREPARING'?'prep':'ready'}">${o.status}</span></div>${o.items.map(i=>`<div>${i.qty} × ${i.name}</div>`).join('')}<div class="row" style="margin-top:12px">${o.status==='NEW'?`<button onclick="setStatus('${o.order_id}','PREPARING')">Mula Sedia</button>`:o.status==='PREPARING'?`<button onclick="setStatus('${o.order_id}','READY')">Tanda READY</button>`:`<button onclick="setStatus('${o.order_id}','COMPLETED')">Selesai</button>`}</div></div>`).join(''):'<div class="card"><div class="muted">Tiada order aktif.</div></div>'}</div>`
+}
+async function setStatus(id,status){let o=state.data.orders.find(x=>x.order_id===id);o.status=status;o.updated_at=new Date().toISOString();audit('Kitchen status '+status,'Kitchen',o.order_no);await save();render()}
+
+function menu(){
+ document.getElementById('app').innerHTML=`<div class="between"><div><h2>Menu</h2><div class="muted">Menu lengkap untuk outlet tunggal.</div></div><button class="primary" onclick="addMenu()">+ Tambah Menu</button></div>
+ <div class="card"><table class="table"><tr><th>Menu</th><th>Kategori</th><th>Harga</th><th>Status</th><th>Tindakan</th></tr>${state.data.menus.map(m=>`<tr><td><b>${m.name}</b></td><td>${m.category}</td><td>${money(m.price)}</td><td><span class="pill">${m.available?'AVAILABLE':'SOLD OUT'}</span></td><td><button onclick="editMenu('${m.id}')">Edit</button> <button onclick="toggleMenu('${m.id}')">${m.available?'Sold Out':'Available'}</button></td></tr>`).join('')}</table></div>`
+}
+async function addMenu(){let n=prompt('Nama menu?');if(!n)return;let cat=prompt('Kategori?',state.data.categories[1]||'Lain-lain');let p=parseFloat(prompt('Harga RM?'));if(!Number.isFinite(p))return;if(!state.data.categories.includes(cat))state.data.categories.push(cat);state.data.menus.push({id:crypto.randomUUID(),category:cat,name:n,price:p,available:true});audit('Add menu','Menu',n);await save();render()}
+async function editMenu(id){let m=state.data.menus.find(x=>x.id===id),n=prompt('Nama',m.name),cat=prompt('Kategori',m.category),p=parseFloat(prompt('Harga',m.price));if(n)m.name=n;if(cat){m.category=cat;if(!state.data.categories.includes(cat))state.data.categories.push(cat)}if(Number.isFinite(p))m.price=p;audit('Edit menu','Menu',id);await save();render()}
+async function toggleMenu(id){let m=state.data.menus.find(x=>x.id===id);m.available=!m.available;audit(m.available?'Set Available':'Set Sold Out','Menu',id);await save();render()}
+
+function categories(){document.getElementById('app').innerHTML=`<div class="between"><h2>Menu Categories</h2><button class="primary" onclick="addCategory()">+ Kategori</button></div><div class="card"><table class="table"><tr><th>Kategori</th><th>Jumlah Menu</th><th>Tindakan</th></tr>${state.data.categories.filter(c=>c!=='Semua').map(c=>`<tr><td>${c}</td><td>${state.data.menus.filter(m=>m.category===c).length}</td><td><button onclick="renameCategory(decodeURIComponent('${encodeURIComponent(c)}'))">Edit</button></td></tr>`).join('')}</table></div>`}
+async function addCategory(){let c=prompt('Nama kategori?');if(!c||state.data.categories.includes(c))return;state.data.categories.push(c);audit('Add category','Menu',c);await save();render()}
+async function renameCategory(old){let n=prompt('Nama kategori',old);if(!n||n===old)return;state.data.categories=state.data.categories.map(c=>c===old?n:c);state.data.menus.forEach(m=>{if(m.category===old)m.category=n});audit('Edit category','Menu',old);await save();render()}
+
+function staff(){document.getElementById('app').innerHTML=`<div class="between"><h2>Staff & Role</h2><button class="primary" onclick="addStaff()">+ Staff</button></div><div class="notice">Edisi ini ialah single-user. Staff disimpan sebagai rekod operasi dan role untuk keserasian dengan versi Cloud.</div><div class="card"><table class="table"><tr><th>Nama</th><th>Role</th><th>Status</th></tr>${state.data.staff.map(s=>`<tr><td>${s.name}</td><td>${s.role}</td><td>${s.active?'ACTIVE':'INACTIVE'}</td></tr>`).join('')}</table></div>`}
+async function addStaff(){let n=prompt('Nama staff?');if(!n)return;let r=prompt('Role: Owner / Manager / Cashier','Cashier');state.data.staff.push({id:crypto.randomUUID(),name:n,role:r,active:true});audit('Add staff','Staff',n);await save();render()}
+
+function reports(){
+ const os=state.data.orders, sales=os.reduce((s,o)=>s+o.total,0), avg=os.length?sales/os.length:0;
+ const byMenu={};os.forEach(o=>o.items.forEach(i=>byMenu[i.name]=(byMenu[i.name]||0)+i.qty));
+ const top=Object.entries(byMenu).sort((a,b)=>b[1]-a[1]).slice(0,10);
+ document.getElementById('app').innerHTML=`<h2>Sales Reports</h2><div class="grid"><div class="card"><div class="muted">Total Sales</div><div class="stat">${money(sales)}</div></div><div class="card"><div class="muted">Total Orders</div><div class="stat">${os.length}</div></div><div class="card"><div class="muted">Average Order</div><div class="stat">${money(avg)}</div></div></div><div class="grid" style="margin-top:14px"><div class="card"><h3>Payment Summary</h3>${['CASH','QR','CARD'].map(p=>`<div class="between"><span>${p}</span><b>${money(os.filter(o=>o.payment===p).reduce((s,o)=>s+o.total,0))}</b></div>`).join('')}</div><div class="card"><h3>Best Selling Menu</h3>${top.length?top.map(x=>`<div class="between"><span>${x[0]}</span><b>${x[1]}</b></div>`).join(''):'<span class="muted">Belum ada data.</span>'}</div></div><div class="card" style="margin-top:14px"><h3>All Orders</h3>${orderTable(os.slice().reverse())}</div>`
+}
+
+function receipt(){
+ const o=state.receipt;if(!o){document.getElementById('app').innerHTML='<h2>Receipt</h2><div class="card">Belum ada receipt dipilih.</div>';return}
+ document.getElementById('app').innerHTML=`<h2>Receipt</h2><div class="card"><div class="receipt"><h3 style="text-align:center">${state.data.receipt.header}</h3><div style="text-align:center">${state.data.outlet.name}</div><div style="text-align:center">${state.data.outlet.address}</div><div style="text-align:center">${state.data.outlet.phone}</div><hr>Order: ${o.order_no}<br>${o.time}<hr>${o.items.map(i=>`${i.qty} x ${i.name}<span style="float:right">${money(i.price*i.qty)}</span>`).join('<br>')}<hr><b>TOTAL <span style="float:right">${money(o.total)}</span></b><br>PAYMENT: ${o.payment}<p style="text-align:center">${state.data.receipt.footer}</p></div><div class="row" style="justify-content:center;margin-top:12px"><button onclick="window.print()">Print</button><button onclick="state.receipt=null;go('pos')">New Order</button></div></div>`
+}
+
+function settings(){
+ document.getElementById('app').innerHTML=`<h2>Settings</h2><div class="card" style="max-width:650px"><h3>Business Rules</h3><label>Service Charge (%)</label><input id="svc" type="number" value="${state.data.settings.service}"><label>Tax (%)</label><input id="tax" type="number" value="${state.data.settings.tax}"><label>Default Discount (%)</label><input id="disc" type="number" value="${state.data.settings.discount}"><label>Order Prefix</label><input id="prefix" value="${state.data.settings.orderPrefix}"><h3 style="margin-top:18px">Payment Methods</h3><label><input id="cash" type="checkbox" style="width:auto" ${state.data.settings.payCash?'checked':''}> CASH</label><label><input id="card" type="checkbox" style="width:auto" ${state.data.settings.payCard?'checked':''}> CARD</label><label><input id="qr" type="checkbox" style="width:auto" ${state.data.settings.payQR?'checked':''}> QR</label><button class="primary" style="margin-top:12px" onclick="saveSettings()">Simpan Settings</button></div>
+ <div class="card" style="max-width:650px;margin-top:14px"><h3>Outlet</h3><label>Nama</label><input id="on" value="${state.data.outlet.name}"><label>Telefon</label><input id="op" value="${state.data.outlet.phone}"><label>Alamat</label><input id="oa" value="${state.data.outlet.address}"><button style="margin-top:10px" onclick="saveOutlet()">Simpan Outlet</button></div>`
+}
+async function saveSettings(){state.data.settings.service=+svc.value;state.data.settings.tax=+tax.value;state.data.settings.discount=+disc.value;state.data.settings.orderPrefix=prefix.value||'KF';state.data.settings.payCash=cash.checked;state.data.settings.payCard=card.checked;state.data.settings.payQR=qr.checked;audit('Change settings','Settings');await save();alert('Settings disimpan.');render()}
+async function saveOutlet(){state.data.outlet.name=on.value;state.data.outlet.phone=op.value;state.data.outlet.address=oa.value;audit('Edit outlet','Outlet',state.data.outlet.id);await save();render()}
+
+function backup(){document.getElementById('app').innerHTML=`<h2>Backup & Restore</h2><div class="notice">Backup ialah fail JSON yang mengandungi database lokal KedaiFlow. Simpan di tempat selamat.</div><div class="card"><button class="primary" onclick="exportData()">⬇️ Export Backup</button><label style="margin-top:18px">Restore Backup</label><input id="restore" type="file" accept=".json" onchange="restoreData(this)"><p class="muted">Backup terakhir: ${state.data.meta.lastBackup||'Belum pernah'}</p></div>`}
+async function exportData(){state.data.meta.lastBackup=new Date().toLocaleString('ms-MY');await save();let blob=new Blob([JSON.stringify(state.data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='KedaiFlow_V10_1_Backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);render()}
+async function restoreData(inp){let f=inp.files[0];if(!f)return;try{let x=JSON.parse(await f.text());if(!x.business||!x.outlet||!x.menus||!x.orders)throw 0;state.data=x;await save();alert('Backup berjaya dipulihkan.');render()}catch(e){alert('Backup tidak sah atau rosak.')}}
+
+function auditPage(){document.getElementById('app').innerHTML=`<h2>Audit Log</h2><div class="card"><table class="table"><tr><th>Masa</th><th>User</th><th>Action</th><th>Module</th><th>Object</th></tr>${state.data.audit.map(a=>`<tr><td>${a.time}</td><td>${a.user}</td><td>${a.action}</td><td>${a.module}</td><td>${a.obj}</td></tr>`).join('')}</table></div>`}
+
+(async()=>{await openDB();state.data=await load();if(!state.data){state.data=seed();await save()}render()})();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js").catch(()=>{}));
+}
+</script>
+
+</body>
+</html>
