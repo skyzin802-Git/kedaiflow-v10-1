@@ -178,8 +178,45 @@ function reports(){
 }
 
 function receipt(){
- const o=state.receipt;if(!o){document.getElementById('app').innerHTML='<h2>Receipt</h2><div class="card">Belum ada receipt dipilih.</div>';return}
- document.getElementById('app').innerHTML=`<h2>Receipt</h2><div class="card"><div class="receipt"><h3 style="text-align:center">${state.data.receipt.header}</h3><div style="text-align:center">${state.data.outlet.name}</div><div style="text-align:center">${state.data.outlet.address}</div><div style="text-align:center">${state.data.outlet.phone}</div><hr>Order: ${o.order_no}<br>${o.time}<hr>${o.items.map(i=>`${i.qty} x ${i.name}<span style="float:right">${money(i.price*i.qty)}</span>`).join('<br>')}<hr><b>TOTAL <span style="float:right">${money(o.total)}</span></b><br>PAYMENT: ${o.payment}<p style="text-align:center">${state.data.receipt.footer}</p></div><div class="row" style="justify-content:center;margin-top:12px"><button onclick="window.print()">Print</button><button onclick="state.receipt=null;go('pos')">New Order</button></div></div>`
+ const o=state.receipt;
+ if(!o){
+   document.getElementById('app').innerHTML='<h2>Receipt</h2><div class="card">Belum ada receipt dipilih.</div>';
+   return;
+ }
+
+ const received = Number(o.cash_received || o.received || 0);
+ const change = Math.max(0, received - Number(o.total || 0));
+
+ document.getElementById('app').innerHTML=`
+ <h2>Receipt</h2>
+ <div class="card">
+   <div class="receipt">
+     <h3 style="text-align:center">${state.data.receipt.header}</h3>
+     <div style="text-align:center">${state.data.outlet.name}</div>
+     <div style="text-align:center">${state.data.outlet.address}</div>
+     <div style="text-align:center">${state.data.outlet.phone}</div>
+     <hr>
+     Order: ${o.order_no}<br>
+     ${o.time}
+     <hr>
+     ${o.items.map(i=>`${i.qty} x ${i.name}<span style="float:right">${money(i.price*i.qty)}</span>`).join('<br>')}
+     <hr>
+     <b>TOTAL <span style="float:right">${money(o.total)}</span></b>
+     <br>
+     PAYMENT: ${o.payment}
+     ${o.payment === 'CASH' ? `
+       <br>
+       TUNAI DITERIMA: <span style="float:right">${money(received)}</span>
+       <br>
+       BAKI / CHANGE: <span style="float:right">${money(change)}</span>
+     ` : ''}
+     <p style="text-align:center">${state.data.receipt.footer}</p>
+   </div>
+   <div class="row" style="justify-content:center;margin-top:12px">
+     <button onclick="window.print()">Print</button>
+     <button onclick="state.receipt=null;go('pos')">New Order</button>
+   </div>
+ </div>`;
 }
 
 function settings(){
